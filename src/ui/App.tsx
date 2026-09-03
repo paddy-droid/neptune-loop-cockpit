@@ -12,6 +12,7 @@ import { LadderCard } from './components/LadderCard'
 import { TrendCard } from './components/TrendCard'
 import { RatesCard } from './components/RatesCard'
 import { SettingsPanel } from './components/SettingsPanel'
+import { AutopilotPanel } from './components/AutopilotPanel'
 
 type Source = { kind: 'wallet'; account: WalletAccount } | { kind: 'watch'; address: string } | { kind: 'demo' } | null
 
@@ -88,7 +89,7 @@ export function App() {
           <img src="./favicon.svg" alt="" width={28} height={28} />
           <div>
             <h1>Neptune Loop Cockpit</h1>
-            <p className="tagline">Read-only strategy cockpit for the INJ loop on Neptune Finance · Injective mainnet</p>
+            <p className="tagline">Strategy cockpit and autopilot for the INJ loop on Neptune Finance · Injective mainnet</p>
           </div>
         </div>
         <div className="topbar-right">
@@ -107,7 +108,7 @@ export function App() {
         <section className="card hero">
           <h2>Connect or watch</h2>
           <p>
-            This page never asks for a signature. A wallet connection only reveals your address; everything else is public chain data.
+            Connecting a wallet reveals your address and unlocks the optional autopilot; nothing is signed until you start it. Everything else is public chain data.
             You can also paste any Injective address and watch its loop, or open the demo.
           </p>
           <div className="connect-row">
@@ -166,6 +167,16 @@ export function App() {
       {data.status && decision && plan && triggers && (
         <main className="grid">
           <DecisionCard decision={decision} plan={plan} status={data.status} />
+          {source?.kind === 'wallet' ? (
+            <AutopilotPanel owner={source.account.address} walletKind={source.account.kind} lcdHosts={lcdHosts} strategy={cfg} />
+          ) : source?.kind === 'watch' && typeof location !== 'undefined' && new URLSearchParams(location.search).get('panel') === '1' ? (
+            // Preview of the autopilot panel without a wallet (?panel=1): signing cannot work here.
+            <AutopilotPanel owner={source.address} walletKind="keplr" lcdHosts={lcdHosts} strategy={cfg} />
+          ) : (
+            <section className="card span2 muted small">
+              <strong>Autopilot:</strong> connect a wallet (Keplr or Leap) to let this page execute the strategy for you, either with a confirmation popup per step or with a limited session key. Watch-only and demo modes never sign anything.
+            </section>
+          )}
           <PositionCard status={data.status} decision={decision} cfg={cfg} />
           <TriggersCard status={data.status} decision={decision} triggers={triggers} />
           <TrendCard trend={data.trend} decision={decision} cfg={cfg} />
@@ -179,7 +190,7 @@ export function App() {
           Strategy: <strong>{cfg.name}</strong> · mode <strong>{cfg.mode}</strong>
         </span>
         <span>
-          <a href="https://github.com/paddy-droid/neptune-loop-cockpit" target="_blank" rel="noreferrer">Source on GitHub</a> · MIT · no keys, no backend, no transactions · not financial advice
+          <a href="https://github.com/paddy-droid/neptune-loop-cockpit" target="_blank" rel="noreferrer">Source on GitHub</a> · MIT · no backend, no stored owner keys · not financial advice
         </span>
       </footer>
     </div>

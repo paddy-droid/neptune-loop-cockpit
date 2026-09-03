@@ -8,7 +8,7 @@ A leveraged long position on a volatile token has a liquidation price. From the 
 
 ## 2. Flash crashes are faster than you
 
-The strategy's repay rule needs you (or, in the author's private setup, a bot) to act. A 30 % candle in minutes leaves no time to withdraw, sell and repay in rounds. Neptune's liquidators are automated; you are not. Keep the band conservative and keep a USDC reserve in your wallet: repaying from wallet stablecoins is the only action that works when the oracle is stale, and it needs no INJ sale.
+The strategy's repay rule needs someone to act: you by hand, or the autopilot within its tick interval. A 30 % candle in minutes leaves no time to withdraw, sell and repay in rounds, and a 60-second tick is already slow compared with Neptune's automated liquidators. Keep the band conservative and keep a USDC reserve in your wallet: repaying from wallet stablecoins is the only action that works when the oracle is stale, needs no INJ sale, and is the first thing the autopilot does.
 
 ## 3. Protocol risk (Neptune Finance)
 
@@ -38,9 +38,20 @@ USDC borrow APR on Neptune has ranged from ~10 % to well above 30 % within weeks
 
 The page depends on public LCD nodes and public price APIs. Any of them can be down, slow, rate-limited or wrong. The cockpit fails closed (no "add" without price history, no recommendation on implausible data), but "no recommendation" during a crash is not protection. If you rely on this page to manage risk, you are relying on third-party infrastructure you do not control.
 
-## 8. What this project is not
+## 8. Autopilot risk
 
-- Not an automated bot. It does not watch your position while you sleep.
+The autopilot removes the delay between a rule and a trade. It does not remove the risk in the rule, and it adds a few of its own:
+
+- **It sells INJ into weakness by design.** The reduce rule exists to prevent liquidation; in a V-shaped crash it will have sold near the low. That is the price of the buffer, not a bug. If you cannot accept it, run `repay-only`? No — `repay-only` still sells on the way down. If you cannot accept it, do not run a leveraged loop.
+- **Execution risk.** Thin order books, a halted market, a stale oracle, a dead LCD host. The engine sizes orders by depth, protects with worst prices, verifies fills and cleans up after failures, but a partially executed round with INJ sitting in the wallet for a minute is a normal event. Read the log.
+- **Session key risk.** A leaked session key can operate your loop within the grants until expiry (see SECURITY.md). Use short expiries; revoke when in doubt.
+- **Runner risk.** A browser tab goes to sleep; a VPS reboots; a webhook silently fails. A bot that died is worse than no bot, because you stopped watching. Use a dead-man alert on the webhook side.
+- **Two runners on one address** (browser + headless, two tabs, two machines) fight over interim state. Run exactly one.
+- **Your acknowledgement is real.** Ticking the box in the panel means you have read this file.
+
+## 9. What this project is not
+
 - Not a signal service. The rules are mechanical and public; there is no forecast in them.
-- Not audited. It is a small, tested, open-source tool built by one person.
+- Not audited by a third party. It is a tested, open-source tool built by one person, ported from a system that went through internal audit rounds.
+- Not a custodian. Nobody but you holds a key that can move your funds.
 - Not financial advice. Nobody involved is a licensed advisor.

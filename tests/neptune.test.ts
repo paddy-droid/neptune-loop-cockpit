@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { buildStatus, type RawStatus } from '../src/chain/neptune'
-import { ASSETS, isInjAddress } from '../src/config/chain'
+import { buildStatus, getStatus, type RawStatus } from '../src/chain/neptune'
+import { ASSETS, NEPTUNE_CONTRACTS, isInjAddress } from '../src/config/chain'
 import { LcdClient, toBase64 } from '../src/chain/lcd'
 import { ADDR } from './fixtures'
 
@@ -51,6 +51,28 @@ describe('buildStatus', () => {
     expect(s.bank.find((b) => b.symbol === 'USDC')?.amount).toBe(250)
   })
 
+  it('fresh address: health query "Account not found" becomes an empty position', async () => {
+    const fetchImpl = (async (url: string | URL | Request) => {
+      const u = String(url)
+      if (u.includes(NEPTUNE_CONTRACTS.querier)) return new Response('{"code":2,"message":"Neptune Querier Error - Account not found"}', { status: 500 })
+      if (u.includes('/cosmos/bank/')) return new Response(JSON.stringify({ balances: [] }), { status: 200 })
+      if (u.includes(NEPTUNE_CONTRACTS.oracle)) return new Response(JSON.stringify({ data: raw().prices }), { status: 200 })
+      if (u.includes(NEPTUNE_CONTRACTS.interest)) return new Response(JSON.stringify({ data: raw().lendRates }), { status: 200 })
+      // market contract: user accounts -> [], markets / collaterals from the fixture
+      const q = decodeURIComponent(u.split('/smart/')[1] ?? '')
+      const msg = Buffer.from(q, 'base64').toString('utf8')
+      if (msg.includes('get_user_accounts')) return new Response(JSON.stringify({ data: [] }), { status: 200 })
+      if (msg.includes('get_all_markets')) return new Response(JSON.stringify({ data: raw().markets }), { status: 200 })
+      return new Response(JSON.stringify({ data: raw().collaterals }), { status: 200 })
+    }) as unknown as typeof fetch
+    const lcd = new LcdClient({ hosts: ['https://a.example'], fetchImpl })
+    const s = await getStatus(lcd, ADDR)
+    expect(s.health).toBe(0)
+    expect(s.debtUsd).toBe(0)
+    expect(s.collateral).toEqual([])
+    expect(s.injPrice).toBe(5)
+  })
+
   it('unknown address / no account -> empty position, no crash', () => {
     const r = raw()
     r.accounts = []
@@ -86,6 +108,18 @@ describe('lcd client', () => {
     await lcd.smartQuery('inj1contract', { q: {} })
     expect(calls.length).toBe(3)
     expect(calls[2].startsWith('https://good')).toBe(true)
+  })
+
+  it('a contract-level HTTP 500 is thrown immediately and does NOT penalise the host', async () => {
+    let calls = 0
+    const fetchImpl = (async () => {
+      calls++
+      return new Response('{"code":2,"message":"Neptune Querier Error - Account not found"}', { status: 500, headers: { 'content-type': 'application/json' } })
+    }) as unknown as typeof fetch
+    const lcd = new LcdClient({ hosts: ['https://a.example', 'https://b.example'], fetchImpl })
+    await expect(lcd.smartQuery('inj1contract', { q: {} })).rejects.toThrow(/Account not found/)
+    expect(calls).toBe(1) // no failover for an application error
+    expect(Object.keys(lcd.hostState()).length).toBe(0) // no penalty
   })
 
   it('throws LcdError when all hosts fail', async () => {

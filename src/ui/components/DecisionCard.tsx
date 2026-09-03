@@ -71,7 +71,7 @@ export function DecisionCard({ decision, plan, status }: { decision: Decision; p
         </p>
       )}
       <p className="muted small">
-        You execute every step yourself in your own wallet. This page cannot and will not send transactions.
+        Without the autopilot you execute every step yourself in your own wallet. With it, the same steps run as separate, verified transactions that you either confirm one by one or delegate to a scoped session key.
       </p>
     </section>
   )

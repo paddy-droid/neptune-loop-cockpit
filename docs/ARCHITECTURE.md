@@ -55,6 +55,45 @@
 | `backtest/sim.ts` | Intraday-path simulator without look-ahead, uses the same `Rung[]` type. | ✔ |
 | `scripts/status-cli.ts` | Same pipeline on the command line. | – |
 
+## Execution layer (autopilot)
+
+```
+                     runTick()  (src/execution/autopilot.ts, pure w.r.t. ports)
+                        │  status + trend + fingerprint -> decide() -> guards -> pause/lock rules
+                        ▼
+                  executeLoop()  (src/execution/engine.ts, pure w.r.t. ports)
+                        │  rounds: withdraw -> sell -> repay | borrow -> buy -> deposit | exit
+                        ▼
+                     ExecPorts   (src/execution/types.ts)
+        ┌───────────────┼──────────────────────────────┐
+        ▼               ▼                              ▼
+  createChainPorts   MockChain (tests)          (any other runtime)
+  (chainPorts.ts)
+        │ status/bank via LCD, books via indexer, messages via a Signer
+        ▼
+     Signer  ──► WalletSigner  (wallet-core MsgBroadcaster, Keplr / Leap popup per tx)
+             ──► SessionSigner (MsgBroadcasterWithPk + MsgExec, gas via feegrant)
+```
+
+| Path | Responsibility | Pure? |
+|---|---|---|
+| `src/execution/types.ts` | `ExecPorts` (the only way the engine touches the world), request/result types, execution config. | ✔ |
+| `src/execution/engine.ts` | `executeLoop()` rounds, `safeStep()`, share conversion, cleanup, `depositOrphanInj()`. | ✔ |
+| `src/execution/autopilot.ts` | `runTick()`: decide → guards → execute → alerts; `AlertThrottle`. | ✔ |
+| `src/execution/guards.ts` | Buy cooldown, hold check, price sampling. | ✔ (+ one fetch helper) |
+| `src/execution/orderbook.ts` | Quote from levels, VWAP, worst prices, tick rounding. | ✔ |
+| `src/execution/markets.ts` | Helix market ids / ticks, indexer hosts. | – |
+| `src/execution/chainPorts.ts` | Real `ExecPorts`: LCD, indexer, message builders. | – |
+| `src/execution/signer.ts` | `WalletSigner`, `SessionSigner`, `broadcastGuarded()` (sequence retry + unclear-outcome proof). | – |
+| `src/execution/session.ts` | Grant / revoke message builders, live grant status, session storage. | – |
+| `src/execution/fingerprint.ts` | Protocol fingerprint (code ids + params). | – |
+| `src/execution/browserRunner.ts` | Interval loop, Web Locks single-tab guarantee, persisted state/log, notifications, webhook. | – |
+| `src/execution/sdk.ts` | Lazily imported bundle of everything that needs the Injective SDK. | – |
+| `scripts/autopilot.ts` | Headless runner and session-key generator. | – |
+| `tests/mockChain.ts` | In-memory chain with fault injection for the engine and tick tests. | – |
+
+The tick and the engine are the same code in the browser, in Node and in the tests; only the ports differ. That is what makes the 40+ execution scenarios (partial fills, unclear broadcasts, lost withdraw responses, stops, time budgets, exit paths) meaningful for production.
+
 ## Why the decision function is stateless
 
 The original automated system ran this policy every five minutes from a serverless function that could be killed, retried or run twice in parallel. A stateless decision means every run starts from the chain's truth: there is no "I already did X" flag that could be wrong. The cockpit inherits that property: reloading the page is always safe, and two people looking at the same address see the same recommendation.
@@ -74,9 +113,10 @@ To repay from collateral you must *withdraw* INJ first, which raises the LTV bef
 
 ## Security posture
 
-- The page requests only `enable(chainId)` and `getKey(chainId)` from the wallet. No `getOfflineSigner`, no `signAmino`, no `sendTx`.
-- No third-party scripts. Dependencies: React and React DOM at runtime, Vite/TypeScript/vitest at build time.
-- All network calls are plain GETs to public endpoints (LCD, Binance, CoinGecko). Nothing is sent that could identify you beyond your IP and the address you look up.
+- Without the autopilot the page requests only `enable(chainId)` and `getKey(chainId)` from the wallet. No signer request.
+- With the autopilot: confirm mode asks the wallet to sign each transaction; session mode asks for one grant transaction (three scoped messages) and then signs `MsgExec` with a local key. See SECURITY.md for the threat model.
+- No third-party scripts. The Injective SDK is loaded as a separate chunk only when the autopilot panel is used.
+- Read-only network calls are plain GETs to public endpoints (LCD, indexer, Binance, CoinGecko). Broadcasts go to the public sentry gRPC-web endpoint.
 - Content is static; there is no server that could be compromised to serve a different strategy to you than to everyone else. Verify a hosted copy by building from source and comparing `dist/`.
 
 ## Hosting

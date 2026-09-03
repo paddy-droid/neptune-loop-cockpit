@@ -44,6 +44,7 @@ export function demoStatus(nowMs = Date.now()): Status {
     usdcUtilization: 0.79,
     usdcPoolFreeUsd: 11_300,
     usdcPoolLentUsd: 58_500,
+    collateralShares: { inj: { shares: '750000000000000000000', poolBalance: '4000000000000000000000000', poolShares: '4000000000000000000000000' } },
   }
 }
 

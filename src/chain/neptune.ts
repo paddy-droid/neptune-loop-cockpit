@@ -91,15 +91,27 @@ export interface Status {
   usdcPoolFreeUsd: number
   /** Total USDC lent to the pool (USD). 0 = unknown. */
   usdcPoolLentUsd: number
+  /**
+   * Raw share bookkeeping per collateral denom (exact decimal strings from the contract).
+   * Needed to build a withdraw message, which takes SHARES, not amounts. Never convert these
+   * through Number(): values above 1e21 turn into exponent notation and break the math.
+   */
+  collateralShares: Record<string, { shares: string; poolBalance: string; poolShares: string }>
 }
 
 const denomOf = (a: AssetInfo): string => a.native_token?.denom ?? a.token?.contract_addr ?? '?'
+
+/** The querier answers HTTP 500 "Account not found" for addresses that never used Neptune - that is an empty position, not an error. */
+const isAccountNotFound = (e: unknown) => /account not found/i.test(String((e as Error)?.message ?? e))
 
 /** All raw queries in parallel. */
 export async function fetchRawStatus(lcd: LcdClient, address: string, accountIndex = 0): Promise<RawStatus> {
   const assets = Object.values(ASSETS).map((a) => ({ native_token: { denom: a.denom } }))
   const [health, prices, accounts, markets, collaterals, lendRates, borrowRates, bank] = await Promise.all([
-    lcd.smartQuery<string>(NEPTUNE_CONTRACTS.querier, { get_account_health: { addr: address, account_index: accountIndex } }),
+    lcd.smartQuery<string>(NEPTUNE_CONTRACTS.querier, { get_account_health: { addr: address, account_index: accountIndex } }).catch((e) => {
+      if (isAccountNotFound(e)) return '0'
+      throw e
+    }),
     lcd.smartQuery<[AssetInfo, OraclePrice][]>(NEPTUNE_CONTRACTS.oracle, { get_prices: { assets } }),
     lcd.smartQuery<[number, UserAccount][]>(NEPTUNE_CONTRACTS.market, { get_user_accounts: { addr: address } }),
     lcd.smartQuery<[AssetInfo, MarketInfo][]>(NEPTUNE_CONTRACTS.market, { get_all_markets: {} }),
@@ -140,7 +152,7 @@ export function buildStatus(raw: RawStatus, address: string, accountIndex = 0, n
     }
   }
 
-  const collPools: Record<string, { balance: number; shares: number }> = {}
+  const collPools: Record<string, { balance: number; shares: number; rawBalance: string; rawShares: string }> = {}
   let injLiqLtv = 0.8
   let injAllowableLtv = 0.78
   for (const [asset, c] of raw.collaterals) {
@@ -151,12 +163,13 @@ export function buildStatus(raw: RawStatus, address: string, accountIndex = 0, n
       const allow = parseFloat(c.collateral_details?.allowable_ltv ?? '')
       if (Number.isFinite(allow) && allow > 0) injAllowableLtv = allow
     }
-    if (c.collateral_pool) collPools[d] = { balance: parseFloat(c.collateral_pool.balance), shares: parseFloat(c.collateral_pool.shares) }
+    if (c.collateral_pool) collPools[d] = { balance: parseFloat(c.collateral_pool.balance), shares: parseFloat(c.collateral_pool.shares), rawBalance: String(c.collateral_pool.balance), rawShares: String(c.collateral_pool.shares) }
   }
 
   const acct = raw.accounts.find(([idx]) => idx === accountIndex)?.[1]
   const collateral: Position[] = []
   const debts: Position[] = []
+  const collateralShares: Status['collateralShares'] = {}
   if (acct) {
     for (const [asset, entry] of acct.collateral_pool_accounts) {
       const denom = denomOf(asset)
@@ -167,6 +180,7 @@ export function buildStatus(raw: RawStatus, address: string, accountIndex = 0, n
       const rawAmount = pool && pool.shares > 0 ? (shares * pool.balance) / pool.shares : parseFloat(entry.principal)
       const amount = rawAmount / 10 ** decimals
       if (amount > 1e-9) collateral.push({ symbol, denom, amount, usd: amount * (priceByDenom[denom] ?? 0) })
+      collateralShares[denom] = { shares: entry.shares, poolBalance: pool ? pool.rawBalance : entry.principal, poolShares: pool ? pool.rawShares : entry.shares }
     }
     for (const [asset, entry] of acct.debt_pool_accounts) {
       const denom = denomOf(asset)
@@ -227,6 +241,7 @@ export function buildStatus(raw: RawStatus, address: string, accountIndex = 0, n
     usdcUtilization,
     usdcPoolFreeUsd,
     usdcPoolLentUsd,
+    collateralShares,
   }
 }
 

@@ -1,6 +1,6 @@
 # Executing a recommendation by hand
 
-The cockpit produces one of five outcomes. This page explains what to do for each, with the checks that keep a manual execution from going wrong. You sign every transaction yourself in your wallet; the cockpit is not involved.
+The cockpit produces one of five outcomes. This page explains what to do for each, with the checks that keep a manual execution from going wrong. Use it when you run without the autopilot, or as the fallback when the autopilot reports DATA ERROR or ABORTED (see [AUTOPILOT.md](AUTOPILOT.md)). You sign every transaction yourself in your wallet.
 
 Apps used:
 

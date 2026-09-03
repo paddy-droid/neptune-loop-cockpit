@@ -1,7 +1,7 @@
 {
   "name": "neptune-loop-cockpit",
-  "version": "0.1.0",
-  "description": "Open-source, read-only cockpit for the INJ collateral loop on Neptune Finance (Injective): connect Keplr or watch any address, see health/LTV, and get the strategy's next move. No keys, no backend, no transactions.",
+  "version": "0.2.0",
+  "description": "Cockpit and autopilot for the INJ collateral loop on Neptune Finance (Injective): watch any address, connect Keplr or Leap, get the strategy's next move with concrete amounts, and optionally let it execute with a scoped session key. No backend, no stored owner keys.",
   "license": "MIT",
   "private": false,
   "type": "module",
@@ -36,9 +36,19 @@
     "test:watch": "vitest",
     "backtest": "tsx backtest/run.ts",
     "backtest:fetch": "node backtest/fetch-daily.mjs",
-    "status": "tsx scripts/status-cli.ts"
+    "status": "tsx scripts/status-cli.ts",
+    "autopilot": "tsx scripts/autopilot.ts",
+    "session": "tsx scripts/autopilot.ts generate"
   },
   "dependencies": {
+    "@injectivelabs/core-proto-ts-v2": "^1.20.3",
+    "@injectivelabs/networks": "^1.20.41",
+    "@injectivelabs/sdk-ts": "^1.20.41",
+    "@injectivelabs/ts-types": "^1.20.41",
+    "@injectivelabs/utils": "^1.20.41",
+    "@injectivelabs/wallet-base": "^1.20.41",
+    "@injectivelabs/wallet-core": "^1.20.41",
+    "@injectivelabs/wallet-strategy": "^1.20.41",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },

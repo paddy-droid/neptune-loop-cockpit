@@ -224,7 +224,7 @@ export function buildPlan(s: Status, d: Decision, cfg: StrategyConfig): ActionPl
   }
 
   // action === 'none'
-  const blocked = d.trend.buyBlocked && d.effective.buyTriggerLtv === null && d.rung.buyLtv !== undefined && d.mode === 'full' && s.ltv < (d.rung.buyTriggerLtv ?? 0)
+  const blocked = debt >= 1 && d.trend.buyBlocked && d.effective.buyTriggerLtv === null && d.rung.buyLtv !== undefined && d.mode === 'full' && s.ltv < (d.rung.buyTriggerLtv ?? 0)
   return {
     kind: blocked ? 'blocked' : 'hold',
     headline: blocked ? 'Hold - adding leverage is paused' : debt < 1 ? 'Hold - no open loop' : 'Hold - inside the band',

@@ -4,10 +4,10 @@ Thanks for looking. Small, well-tested changes are the easiest to merge.
 
 ## Ground rules
 
-1. **The default build stays read-only.** No signing, no transaction building, no wallet permissions beyond the address. PRs that add execution will be closed with a pointer to [docs/ROADMAP.md](docs/ROADMAP.md).
+1. **Read-only by default; execution only behind Start + acknowledgement; never a stored owner key.** PRs that widen what the session grant allows (other contracts, limit orders, `MsgSend`, generic authorizations) will be closed. PRs that tighten it are welcome.
 2. **No backend, no telemetry, no third-party scripts.**
 3. **Strategy changes need a backtest and a paragraph of reasoning.** Default parameters are not tuned to the backtest (see [docs/STRATEGY.md](docs/STRATEGY.md#backtest-honesty)); a PR that only "improves the numbers" is noise-fitting and will not be merged. New guards, new data checks and bug fixes in the math are welcome.
-4. **Pure core.** Anything under `src/strategy`, `src/market/trend.ts (computeTrend)` and `src/chain/neptune.ts (buildStatus)` must stay side-effect free and unit-tested.
+4. **Pure core.** Anything under `src/strategy`, `src/market/trend.ts (computeTrend)`, `src/chain/neptune.ts (buildStatus)` and `src/execution/{engine,guards,autopilot,orderbook}.ts` must stay side-effect free (I/O only through `ExecPorts`) and unit-tested. Execution changes need a scenario in `tests/engine.test.ts` or `tests/autopilot.test.ts` against the mock chain.
 
 ## Workflow
 

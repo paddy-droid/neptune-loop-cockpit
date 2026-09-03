@@ -54,6 +54,7 @@ export const LINKS = {
   helixSpotInjUsdc: 'https://helix.app/spot/inj-usdc',
   explorerAddress: (addr: string) => `https://injscan.com/account/${addr}`,
   explorerContract: (addr: string) => `https://injscan.com/contract/${addr}`,
+  explorerTx: (hash: string) => `https://injscan.com/transaction/${hash}`,
   keplr: 'https://www.keplr.app',
   leap: 'https://www.leapwallet.io',
 } as const

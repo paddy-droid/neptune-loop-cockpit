@@ -18,12 +18,27 @@ export interface LcdClientOptions {
   fetchImpl?: typeof fetch
 }
 
+/** Every host failed (network, timeout, 5xx gateway errors). */
 export class LcdError extends Error {
   constructor(message: string, public readonly attempts: string[]) {
     super(message)
     this.name = 'LcdError'
   }
 }
+
+/**
+ * The node answered, but the request itself failed (400/404/500 with a JSON error body, e.g. a
+ * CosmWasm query that the contract rejected). Not a host problem: no failover, no penalty.
+ */
+export class LcdHttpError extends Error {
+  constructor(public readonly status: number, public readonly body: string, public readonly host: string) {
+    super(`HTTP ${status} from ${host}: ${body.slice(0, 200)}`)
+    this.name = 'LcdHttpError'
+  }
+}
+
+/** Gateway-style statuses that mean "try the next host". */
+const HOST_FAILURE_STATUS = new Set([429, 502, 503, 504])
 
 export class LcdClient {
   readonly hosts: readonly string[]
@@ -60,18 +75,25 @@ export class LcdClient {
           signal: AbortSignal.timeout(timeoutMs),
         })
         if (!res.ok) {
-          const body = (await res.text().catch(() => '')).slice(0, 160)
-          throw new Error(`HTTP ${res.status} ${body}`)
+          const body = (await res.text().catch(() => '')).slice(0, 400)
+          if (!HOST_FAILURE_STATUS.has(res.status) && body.trim().startsWith('{')) {
+            // application-level error: the host is fine, the request is not
+            this.blockedUntil.delete(host)
+            this.lastHost = host
+            throw new LcdHttpError(res.status, body, host)
+          }
+          throw new Error(`HTTP ${res.status} ${body.slice(0, 160)}`)
         }
         this.blockedUntil.delete(host)
         this.lastHost = host
         return (await res.json()) as T
       } catch (e) {
+        if (e instanceof LcdHttpError) throw e
         attempts.push(`${host}: ${String(e).slice(0, 100)}`)
         this.blockedUntil.set(host, Date.now() + this.penaltyMs)
       }
     }
-    throw new LcdError(`All ${candidates.length} LCD hosts failed`, attempts)
+    throw new LcdError(`All ${candidates.length} LCD hosts failed: ${attempts[attempts.length - 1] ?? ''}`, attempts)
   }
 
   /** CosmWasm smart query. `msg` is the JSON query object of the contract. */

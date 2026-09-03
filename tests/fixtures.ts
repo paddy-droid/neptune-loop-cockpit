@@ -34,6 +34,7 @@ export function statusAt(ltv: number, opts: Partial<Status> & { inj?: number; pr
     usdcUtilization: 0.7,
     usdcPoolFreeUsd: 20_000,
     usdcPoolLentUsd: 60_000,
+    collateralShares: { inj: { shares: String(BigInt(Math.round(inj * 1e6)) * 10n ** 12n), poolBalance: '5000000000000000000000000', poolShares: '5000000000000000000000000' } },
   }
   const { inj: _i, price: _p, ...rest } = opts
   return { ...base, ...rest }
