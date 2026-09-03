@@ -152,6 +152,11 @@ describe('decide - exchange price below oracle', () => {
     expect(d.action).toBe('none')
     expect(d.refPrice).toBeUndefined()
   })
+  it('exchange only 0.2 % below oracle -> no reference price (feeds ticking, not a gap)', () => {
+    const d = decide(statusAt(0.56), trendOk({ lastClose: 5.58 * 0.998 }), cfg)
+    expect(d.refPrice).toBeUndefined()
+    expect(d.ltvEff).toBe(0.56)
+  })
   it('exchange more than 15 % below oracle -> oracle-gap warning', () => {
     const d = decide(statusAt(0.4), trendOk({ lastClose: 4.5 }), cfg)
     expect(d.warn).toBe('oracle-gap')

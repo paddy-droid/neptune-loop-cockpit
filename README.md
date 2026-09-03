@@ -9,6 +9,8 @@ Connect Keplr or Leap, or paste any `inj1…` address, and the page shows the po
 - **Your parameters.** The whole strategy is one JSON object you can edit in the UI, store locally, and back-test with the included simulator.
 - **Honest about the odds.** The documentation says where the strategy loses and why the backtest has ~5 independent observations. Read [docs/RISKS.md](docs/RISKS.md) first.
 
+![Neptune Loop Cockpit in demo mode](docs/screenshot-demo.png)
+
 ---
 
 ## What the loop is

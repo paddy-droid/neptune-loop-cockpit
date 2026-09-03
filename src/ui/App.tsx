@@ -78,7 +78,7 @@ export function App() {
     setWatchInput('')
   }
 
-  const ageSec = data.lastUpdated ? (now - data.lastUpdated) / 1000 : null
+  const ageSec = data.lastUpdated ? Math.max(0, (Math.max(now, data.lastUpdated) - data.lastUpdated) / 1000) : null
   const stale = ageSec !== null && ageSec > 150
 
   return (

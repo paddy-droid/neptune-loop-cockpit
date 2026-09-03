@@ -83,7 +83,7 @@ USDC pool utilisation ≥ 85 %: no adding. Above that, the rate curve gets steep
 
 ### 2.7 Exchange price as reference
 
-If a fresh exchange price is below the oracle, the reduce trigger is evaluated with the higher "effective LTV" (`ltv × oracle / exchange`, capped at +15 %). The planner also uses the lower price for amounts. Rationale: in a crash the oracle lags, and the market is where you will actually sell.
+If a fresh exchange price is more than 0.5 % below the oracle, the reduce trigger is evaluated with the higher "effective LTV" (`ltv × oracle / exchange`, capped at +15 %). The planner also uses the lower price for amounts. Rationale: in a crash the oracle lags, and the market is where you will actually sell.
 
 ### 2.8 Modes
 

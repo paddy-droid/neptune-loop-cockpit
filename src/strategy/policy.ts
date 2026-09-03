@@ -79,6 +79,9 @@ export interface Decision {
 
 const pct = (v: number, digits = 1) => `${(v * 100).toFixed(digits)} %`
 
+/** Minimum gap (fraction) between exchange and oracle price before the exchange price is used as reference. */
+export const REF_PRICE_MIN_GAP = 0.005
+
 /** Market data younger than cfg.marketFreshSec. */
 export function trendIsFresh(trend: Trend | null | undefined, cfg: StrategyConfig, nowMs = Date.now()): boolean {
   return !!trend?.ok && Number.isFinite(Date.parse(trend.fetchedAt)) && nowMs - Date.parse(trend.fetchedAt) < cfg.marketFreshSec * 1000
@@ -93,7 +96,8 @@ export function decide(s: Status, trend: Trend | null, cfg: StrategyConfig, nowM
   const P = s.injPrice
   const rung = rungForPrice(cfg.ladder, P)
   const fresh = trendIsFresh(trend, cfg, nowMs)
-  const refPrice = fresh && trend!.lastClose > 0 && trend!.lastClose < P ? trend!.lastClose : undefined
+  // Exchange price counts as "below the oracle" only when the gap is material (> 0.5 %); a few basis points are just two feeds ticking.
+  const refPrice = fresh && trend!.lastClose > 0 && trend!.lastClose < P * (1 - REF_PRICE_MIN_GAP) ? trend!.lastClose : undefined
   const oracleGap = refPrice !== undefined && refPrice / P < 1 / 1.15
 
   const tfCfg = cfg.trendFilter
@@ -202,8 +206,8 @@ export function decide(s: Status, trend: Trend | null, cfg: StrategyConfig, nowM
   if (s.debtUsd < 1) return { action: 'none', reason: 'No debt - nothing to do', ...base }
 
   // Effective LTV for the repay trigger: if a fresh exchange price is below the oracle (oracle lags in a crash), the lower price counts (max +15 %).
-  const ltvEff = fresh && trend!.lastClose > 0 && trend!.lastClose < P && s.ltv > repayTargetLtv + 0.005
-    ? Math.min(s.ltv * (P / trend!.lastClose), s.ltv * 1.15)
+  const ltvEff = refPrice !== undefined && s.ltv > repayTargetLtv + 0.005
+    ? Math.min(s.ltv * (P / refPrice), s.ltv * 1.15)
     : s.ltv
 
   const usdcDebtUsd = s.debts.find((d) => d.symbol === 'USDC')?.usd ?? 0
