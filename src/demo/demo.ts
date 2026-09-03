@@ -10,9 +10,9 @@ import { ASSETS } from '../config/chain'
 export const DEMO_ADDRESS = 'inj1demo000000000000000000000000000000000'
 
 export function demoStatus(nowMs = Date.now()): Status {
-  const injPrice = 6.1
-  const inj = 2000
-  const debt = 4900
+  const injPrice = 7.4
+  const inj = 750
+  const debt = 2300
   const collateralUsd = inj * injPrice
   const ltv = debt / collateralUsd
   const health = 0.8 / ltv
@@ -35,8 +35,8 @@ export function demoStatus(nowMs = Date.now()): Status {
       { symbol: 'USDT', lend: 0.071, borrow: 0.142 },
     ],
     bank: [
-      { symbol: 'INJ', denom: ASSETS.INJ.denom, amount: 1.4, usd: 1.4 * injPrice },
-      { symbol: 'USDC', denom: ASSETS.USDC.denom, amount: 320, usd: 320 },
+      { symbol: 'INJ', denom: ASSETS.INJ.denom, amount: 2.2, usd: 2.2 * injPrice },
+      { symbol: 'USDC', denom: ASSETS.USDC.denom, amount: 180, usd: 180 },
     ],
     oracleAgeSec: 42,
     injLiqLtv: 0.8,
@@ -56,7 +56,7 @@ export function demoTrend(smaDays = 50, panicPct = 0.05): Trend {
     p = Math.max(1, p * (1 + 0.004 + wave * 0.02))
     closes.push(p)
   }
-  const scale = 6.1 / closes[closes.length - 1]
+  const scale = 7.4 / closes[closes.length - 1]
   const candles = closes.map((c) => ({ close: c * scale, high: c * scale * 1.03, low: c * scale * 0.97 }))
   return computeTrend(candles, 'demo', { smaDays, panicPct })
 }

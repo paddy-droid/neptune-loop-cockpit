@@ -70,8 +70,8 @@ export function simulate(days: Day[], o: SimOptions): SimResult {
   const STEPS = o.steps ?? 24
   const n = o.smaDays ?? 50
   const panicPct = o.panicPct ?? 0.05
-  let inj = o.inj ?? 2139
-  let debt = o.debt ?? 6673
+  let inj = o.inj ?? 1000
+  let debt = o.debt ?? 2700
   let usdc = 0
   let buys = 0
   let sells = 0
@@ -156,7 +156,7 @@ export function simulate(days: Day[], o: SimOptions): SimResult {
  * Benchmark: hold the same starting EQUITY in INJ without leverage (no debt, no interest).
  * Starting equity = inj * P0 - debt, converted into INJ at the first live close.
  */
-export function holdResult(days: Day[], inj = 2139, debt = 6673): { equity: number; maxDrawdownPct: number } {
+export function holdResult(days: Day[], inj = 1000, debt = 2700): { equity: number; maxDrawdownPct: number } {
   const live = days.filter((d) => !d.warm)
   const p0 = live[0].c
   const units = (inj * p0 - debt) / p0

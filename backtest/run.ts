@@ -17,8 +17,9 @@ const here = dirname(fileURLToPath(import.meta.url))
 const DATA: Day[] = JSON.parse(readFileSync(join(here, 'data', 'inj_daily.json'), 'utf8'))
 const NOW = DATA[DATA.length - 1].c
 const ladder = DEFAULT_STRATEGY.ladder
-const startInj = 2139
-const startDebt = 6673
+// Generic starting position: 1,000 INJ collateral, $2,700 debt (LTV ~45 % at the rescaled price). Not anyone's real position.
+const startInj = 1000
+const startDebt = 2700
 
 const WINDOWS: [string, string, string][] = [
   ['2021 bull (Nov20 -> Apr21)', '2020-11-01', '2021-04-30'],

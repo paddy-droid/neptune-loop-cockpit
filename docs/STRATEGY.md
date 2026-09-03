@@ -102,19 +102,21 @@ Given a decision, the planner computes:
 
 ## 4. Backtest honesty
 
-The repository ships a simulator (`npm run backtest`) and the INJ daily history since Binance listing (Oct 2020). Results for the default configuration, rolling 12-month windows, starting from 2,139 INJ collateral and $6,673 debt rescaled to INJ = $5.93 (equity ≈ $6,000), 16 % APR, 1 % trade cost, run on 2026-09-03:
+The repository ships a simulator (`npm run backtest`) and the INJ daily history since Binance listing (Oct 2020). Results for the default configuration, rolling 12-month windows, starting from a generic position of 1,000 INJ collateral and $2,700 debt (LTV ≈ 45 %) with every window rescaled to INJ = $5.93 (equity ≈ $3,200), 16 % APR, 1 % trade cost, run on 2026-09-03:
 
 | Statistic | Loop (default) | Hold the same equity in INJ, no leverage |
 |---|---|---|
 | Windows | 1,711 | 1,711 |
-| Mean multiple | 3.23× | 2.49× |
+| Mean multiple | 3.29× | 2.49× |
 | Median multiple | 0.09× | 0.54× |
 | Windows ending with < 20 % of the equity | 61 % | – |
 | Simulated liquidations | 0 | – |
-| Loop beats the unleveraged hold | 22 % of windows | – |
-| Bull windows (INJ ≥ 3× in 12 months): share / loop mean / loop median | 24 % / 12.4× / 7.0× | – |
-| Modest-bull windows (INJ 1.3–3×): loop mean / median / share below 1× | 1.56× / 1.63× / 44 % | – |
+| Loop beats the unleveraged hold | 23 % of windows | – |
+| Bull windows (INJ ≥ 3× in 12 months): share / loop mean / loop median | 24 % / 12.7× / 6.9× | – |
+| Modest-bull windows (INJ 1.3–3×): loop mean / median / share below 1× | 1.58× / 1.67× / 44 % | – |
 | Down windows (INJ < 1×): loop median / hold median | 0.03× / 0.36× | – |
+
+The multiples are scale-free: a position ten times larger produces the same table until the USDC pool's free liquidity becomes the limit.
 
 Read that table as follows:
 
@@ -124,7 +126,7 @@ Read that table as follows:
 4. **Zero simulated liquidations is not zero real liquidations.** The simulator assumes you act at every intraday step. A human acting once a day would have been liquidated in several windows. Read [RISKS.md](RISKS.md).
 5. **Costs matter less than path.** Removing interest and slippage from the simulation barely changes the medians; the loss in flat and down markets is volatility drag plus the cap, not fees.
 
-The named windows (`npm run backtest` without flags) show the same picture in detail: the 2021 and 2023 bull runs end in an exit with $215k from $6k of equity; sideways ends near zero; both bear windows end at zero equity but alive.
+The named windows (`npm run backtest` without flags) show the same picture in detail: the 2021 and 2023 bull runs end in an exit at roughly 35× the starting equity; sideways ends near zero; both bear windows end at zero equity but alive.
 
 ## 5. Where the defaults came from
 

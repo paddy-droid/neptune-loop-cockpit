@@ -21,7 +21,7 @@ Windows are rescaled so the first live day equals the last price in the data set
 
 ## Reading the output
 
-`216k / DD 56% / EXIT / minH 1.383` means: final equity $216k, max drawdown 56 %, the strategy exited above $75, and the lowest health along the way was 1.383. `LIQ` means liquidated.
+`120k / DD 56% / EXIT / minH 1.383` means: final equity $120k, max drawdown 56 %, the strategy exited above $75, and the lowest health along the way was 1.383. `LIQ` means liquidated. The starting position is a generic 1,000 INJ / $2,700 debt; change `startInj` / `startDebt` in `run.ts` for your own size (results scale linearly until pool liquidity binds).
 
 Before you compare variants, read `docs/STRATEGY.md#backtest-honesty`: the rolling windows overlap by 364 of 365 days, there are about five independent observations and exactly one independent bull run in the data. The simulator answers "does the strategy fall apart if a parameter moves?" (no) and "what order of magnitude?" — not "is 0.48 better than 0.50".
 
